@@ -348,3 +348,7 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+code/Properties/launchSettings.json
+code/sbox-ssp.csproj
+maps/editor/_bakeresourcecache
+tools_thumbnail_cache.bin
