@@ -7,13 +7,16 @@ namespace TLC.SSP
 	{
 		public GameController()
 		{
-
+			if (IsServer)
+			{
+				_ = new SpaceShipHud();
+			}
 		}
 
 		public override void ClientJoined( Client cl )
 		{
 			base.ClientJoined( cl );
-			var player = new GroundPlayer();
+			var player = new SpaceShipPlayer();
 			player.Respawn();
 
 			cl.Pawn = player;

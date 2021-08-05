@@ -1,6 +1,6 @@
 ﻿using Sandbox;
 
-namespace TLC.SSP 
+namespace TLC.SSP
 {
 	partial class GroundPlayer : Player
 	{
