@@ -16,7 +16,7 @@ namespace TLC.SSP
 		public override void ClientJoined( Client cl )
 		{
 			base.ClientJoined( cl );
-			var player = new SpaceShipPlayer();
+			var player = new GroundPlayer();
 			player.Respawn();
 
 			cl.Pawn = player;

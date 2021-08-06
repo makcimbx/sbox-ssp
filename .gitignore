@@ -352,3 +352,5 @@ code/Properties/launchSettings.json
 code/sbox-ssp.csproj
 maps/editor/_bakeresourcecache
 tools_thumbnail_cache.bin
+materials/default
+tools_asset_info.bin

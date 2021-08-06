@@ -11,7 +11,7 @@ namespace TLC.SSP
 			if ( !IsClient )
 				return;
 
-			RootPanel.StyleSheet.Load( "SpaceShip/UI/SpaceShipHud.scss" );
+			RootPanel.StyleSheet.Load( "entities/space_ship/ui/SpaceShipHud.scss" );
 
 			RootPanel.AddChild<Velocity>();
 		}
