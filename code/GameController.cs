@@ -7,7 +7,7 @@ namespace TLC.SSP
 	{
 		public GameController()
 		{
-			if (IsServer)
+			if ( IsServer )
 			{
 				_ = new SpaceShipHud();
 			}
@@ -55,7 +55,58 @@ namespace TLC.SSP
 				ent.PhysicsBody.Position -= delta;
 				//DebugOverlay.Line( p, tr.EndPos, 10, false );
 			}
+		}
 
+		[ServerCmd( "spawn_here" )]
+		public static void SpawnHere( string modelname, bool physicsEnabled = true )
+		{
+			var owner = ConsoleSystem.Caller?.Pawn;
+
+			if ( ConsoleSystem.Caller == null )
+				return;
+
+			var pos = owner.Position;
+			var ent = new Prop();
+			ent.Position = pos;
+			ent.Rotation = Rotation.From( new Angles( 0, owner.EyeRot.Angles().yaw, 0 ) ) * Rotation.FromAxis( Vector3.Up, 180 );
+			ent.SetModel( modelname );
+
+			// Drop to floor
+			if ( ent.PhysicsBody != null && ent.PhysicsGroup.BodyCount == 1 )
+			{
+				var p = ent.PhysicsBody.FindClosestPoint( pos );
+
+				var delta = p - pos;
+				ent.PhysicsBody.Position -= delta;
+				//DebugOverlay.Line( p, tr.EndPos, 10, false );
+			}
+
+			ent.PhysicsEnabled = physicsEnabled;
+		}
+
+		[ServerCmd( "spawn_planet_here" )]
+		public static void SpawnPlanetHere( string modelname )
+		{
+			var owner = ConsoleSystem.Caller?.Pawn;
+
+			if ( ConsoleSystem.Caller == null )
+				return;
+
+			var pos = owner.Position;
+			var ent = new Prop();
+			ent.Position = pos;
+			ent.Rotation = Rotation.Identity;
+			ent.SetModel( modelname );
+
+			ent.PhysicsEnabled = false;
+
+			if ( owner is GroundPlayer player )
+			{
+				player.Planet = ent;
+				player.PlanetWalkController = new PlanetWalkController();
+				player.LastCamera = player.MainCamera;
+				player.MainCamera = new ThirdPersonPlanetCamera();
+			}
 		}
 
 		[ServerCmd( "spawn_entity" )]

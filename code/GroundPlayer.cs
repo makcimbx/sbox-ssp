@@ -10,6 +10,8 @@ namespace TLC.SSP
 		private DamageInfo lastDamage;
 
 		[Net] public PawnController VehicleController { get; set; }
+		[Net] public PawnController PlanetWalkController { get; set; }
+		[Net] public Prop Planet { get; set; }
 		[Net] public PawnAnimator VehicleAnimator { get; set; }
 		[Net] public ICamera VehicleCamera { get; set; }
 		[Net] public Entity Vehicle { get; set; }
@@ -24,7 +26,7 @@ namespace TLC.SSP
 
 		public override void Spawn()
 		{
-			MainCamera = new FirstPersonCamera();
+			MainCamera = new ThirdPersonCamera();
 			LastCamera = MainCamera;
 
 			base.Spawn();
@@ -113,6 +115,7 @@ namespace TLC.SSP
 		{
 			if ( VehicleController != null ) return VehicleController;
 			if ( DevController != null ) return DevController;
+			if ( PlanetWalkController != null ) return PlanetWalkController;
 
 			return base.GetActiveController();
 		}
@@ -150,24 +153,39 @@ namespace TLC.SSP
 
 			var controller = GetActiveController();
 			if ( controller != null )
+			{
 				EnableSolidCollisions = !controller.HasTag( "noclip" );
+
+				if ( controller is PlanetWalkController planetWalkController )
+				{
+					planetWalkController.Planet = Planet;
+				}
+			}
 
 			TickPlayerUse();
 			SimulateActiveChild( cl, ActiveChild );
 
-			if ( Input.Pressed( InputButton.View ) )
-			{
-				if ( MainCamera is not FirstPersonCamera )
-				{
-					MainCamera = new FirstPersonCamera();
-				}
-				else
-				{
-					MainCamera = new ThirdPersonCamera();
-				}
-			}
+			//if ( Input.Pressed( InputButton.View ) )
+			//{
+			//	if ( MainCamera is not FirstPersonCamera )
+			//	{
+			//		MainCamera = new FirstPersonCamera();
+			//	}
+			//	else
+			//	{
+			//		MainCamera = new ThirdPersonCamera();
+			//	}
+			//}
 
 			Camera = GetActiveCamera();
+
+			if ( Camera != null )
+			{
+				if ( Camera is ThirdPersonPlanetCamera camera )
+				{
+					camera.Planet = Planet;
+				}
+			}
 
 			if ( Input.Pressed( InputButton.Drop ) )
 			{
