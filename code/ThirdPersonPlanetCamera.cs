@@ -100,9 +100,13 @@ namespace TLC.SSP
 				input.StopProcessing = true;
 			}
 
-			input.InputDirection *= Rotation;
+			// add the view move, clamp pitch
+			//input.ViewAngles += input.AnalogLook;// * Rotation;
+			//input.ViewAngles.pitch = input.ViewAngles.pitch.Clamp( -89, 89 );
+			//input.ViewAngles.roll = 0;
 
-			base.BuildInput( input );
+			// Just copy input as is
+			input.InputDirection = input.AnalogMove * Rotation;
 		}
 	}
 }

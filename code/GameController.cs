@@ -104,8 +104,8 @@ namespace TLC.SSP
 			{
 				player.Planet = ent;
 				player.PlanetWalkController = new PlanetWalkController();
-				player.LastCamera = player.MainCamera;
-				player.MainCamera = new ThirdPersonPlanetCamera();
+				player.PlanetCamera = new ThirdPersonPlanetCamera();
+				player.PlanetAnimator = new PlanetPlayerAnimator();
 			}
 		}
 

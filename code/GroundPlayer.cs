@@ -13,7 +13,10 @@ namespace TLC.SSP
 		[Net] public PawnController PlanetWalkController { get; set; }
 		[Net] public Prop Planet { get; set; }
 		[Net] public PawnAnimator VehicleAnimator { get; set; }
+		[Net] public PawnAnimator PlanetAnimator { get; set; }
 		[Net] public ICamera VehicleCamera { get; set; }
+		[Net] public ICamera PlanetCamera { get; set; }
+
 		[Net] public Entity Vehicle { get; set; }
 		[Net] public ICamera MainCamera { get; set; }
 
@@ -122,6 +125,7 @@ namespace TLC.SSP
 
 		public override PawnAnimator GetActiveAnimator()
 		{
+			if ( PlanetAnimator != null ) return PlanetAnimator;
 			if ( VehicleAnimator != null ) return VehicleAnimator;
 
 			return base.GetActiveAnimator();
@@ -129,6 +133,7 @@ namespace TLC.SSP
 
 		public ICamera GetActiveCamera()
 		{
+			if ( PlanetCamera != null ) return PlanetCamera;
 			if ( VehicleCamera != null ) return VehicleCamera;
 
 			return MainCamera;
@@ -184,6 +189,16 @@ namespace TLC.SSP
 				if ( Camera is ThirdPersonPlanetCamera camera )
 				{
 					camera.Planet = Planet;
+				}
+			}
+
+			Animator = GetActiveAnimator();
+
+			if ( Animator != null )
+			{
+				if ( Animator is PlanetPlayerAnimator animator )
+				{
+					animator.Planet = Planet;
 				}
 			}
 
