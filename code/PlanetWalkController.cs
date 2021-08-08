@@ -29,6 +29,7 @@ namespace TLC.SSP
 		public float AirControl { get; set; } = 30.0f;
 		public bool Swimming { get; set; } = false;
 		public bool AutoJump { get; set; } = false;
+		public Vector3 RealVelocity { get; set; }
 
 		public Duck Duck;
 		public Unstuck Unstuck;
@@ -116,8 +117,8 @@ namespace TLC.SSP
 			//
 			if ( !Swimming && !IsTouchingLadder )
 			{
-				Velocity -= CalculateCorrectVelocity( new Vector3( 0, 0, Gravity * 0.5f ) * Time.Delta );
-				Velocity += CalculateCorrectVelocity( new Vector3( 0, 0, BaseVelocity.z ) * Time.Delta );
+				RealVelocity -= new Vector3( 0, 0, Gravity * 0.5f ) * Time.Delta;
+				RealVelocity += new Vector3( 0, 0, BaseVelocity.z ) * Time.Delta;
 
 				BaseVelocity = BaseVelocity.WithZ( 0 );
 			}
@@ -138,9 +139,9 @@ namespace TLC.SSP
 			//bool bDropSound = false;
 			if ( bStartOnGround )
 			{
-				//if ( Velocity.z < FallSoundZ ) bDropSound = true;
+				//if ( RealVelocity.z < FallSoundZ ) bDropSound = true;
 
-				Velocity = Velocity.WithZ( 0 );
+				RealVelocity = RealVelocity.WithZ( 0 );
 				//player->m_Local.m_flFallVelocity = 0.0f;
 
 				if ( GroundEntity != null )
@@ -191,13 +192,13 @@ namespace TLC.SSP
 			// FinishGravity
 			if ( !Swimming && !IsTouchingLadder )
 			{
-				Velocity -= new Vector3( 0, 0, Gravity * 0.5f ) * Time.Delta;
+				RealVelocity -= new Vector3( 0, 0, Gravity * 0.5f ) * Time.Delta;
 			}
 
 
 			if ( GroundEntity != null )
 			{
-				Velocity = Velocity.WithZ( 0 );
+				RealVelocity = RealVelocity.WithZ( 0 );
 			}
 
 			if ( Debug )
@@ -209,13 +210,14 @@ namespace TLC.SSP
 				if ( Host.IsServer ) lineOffset = 10;
 
 				DebugOverlay.ScreenText( lineOffset + 0, $"        Position: {Position}" );
-				DebugOverlay.ScreenText( lineOffset + 1, $"        Velocity: {Velocity}" );
+				DebugOverlay.ScreenText( lineOffset + 1, $"        RealVelocity: {RealVelocity}" );
 				DebugOverlay.ScreenText( lineOffset + 2, $"    BaseVelocity: {BaseVelocity}" );
 				DebugOverlay.ScreenText( lineOffset + 3, $"    GroundEntity: {GroundEntity} [{GroundEntity?.Velocity}]" );
 				DebugOverlay.ScreenText( lineOffset + 4, $" SurfaceFriction: {SurfaceFriction}" );
 				DebugOverlay.ScreenText( lineOffset + 5, $"    WishVelocity: {WishVelocity}" );
 			}
 
+			Velocity = CalculateCorrectVelocity( RealVelocity );
 		}
 
 		public virtual float GetWishSpeed()
@@ -237,23 +239,23 @@ namespace TLC.SSP
 			WishVelocity = WishVelocity.WithZ( 0 );
 			WishVelocity = WishVelocity.Normal * wishspeed;
 
-			Velocity = Velocity.WithZ( 0 );
+			RealVelocity = RealVelocity.WithZ( 0 );
 			Accelerate( wishdir, wishspeed, 0, Acceleration );
-			Velocity = Velocity.WithZ( 0 );
+			RealVelocity = RealVelocity.WithZ( 0 );
 
 			// Add in any base velocity to the current velocity.
-			Velocity += BaseVelocity;
+			RealVelocity += BaseVelocity;
 
 			try
 			{
-				if ( Velocity.Length < 1.0f )
+				if ( RealVelocity.Length < 1.0f )
 				{
-					Velocity = Vector3.Zero;
+					RealVelocity = Vector3.Zero;
 					return;
 				}
 
 				// first try just moving to the destination
-				var dest = (Position + Velocity * Time.Delta).WithZ( Position.z );
+				var dest = (Position + RealVelocity * Time.Delta).WithZ( Position.z );
 
 				var pm = TraceBBox( Position, dest );
 
@@ -270,7 +272,7 @@ namespace TLC.SSP
 			{
 
 				// Now pull the base velocity back out.   Base velocity is set if you are on a moving object, like a conveyor (or maybe another monster?)
-				Velocity -= BaseVelocity;
+				RealVelocity -= BaseVelocity;
 			}
 
 			StayOnGround();
@@ -279,7 +281,7 @@ namespace TLC.SSP
 		public virtual void StepMove()
 		{
 			var startPos = Position;
-			var startVel = Velocity;
+			var startVel = RealVelocity;
 
 			//
 			// First try walking straight to where they want to go.
@@ -291,13 +293,13 @@ namespace TLC.SSP
 			// Save those results for use later.
 			//
 			var withoutStepPos = Position;
-			var withoutStepVel = Velocity;
+			var withoutStepVel = RealVelocity;
 
 			//
 			// Try again, this time step up and move across
 			//
 			Position = startPos;
-			Velocity = startVel;
+			RealVelocity = startVel;
 			var trace = TraceBBox( Position, Position + Vector3.Up * (StepSize + DistEpsilon) );
 			if ( !trace.StartedSolid ) Position = trace.EndPos;
 			TryPlayerMove();
@@ -310,7 +312,7 @@ namespace TLC.SSP
 			{
 				// didn't step on ground, so just use the original attempt without stepping
 				Position = withoutStepPos;
-				Velocity = withoutStepVel;
+				RealVelocity = withoutStepVel;
 				return;
 			}
 
@@ -329,7 +331,7 @@ namespace TLC.SSP
 			if ( withoutStep > withStep )
 			{
 				Position = withoutStepPos;
-				Velocity = withoutStepVel;
+				RealVelocity = withoutStepVel;
 				return;
 			}
 		}
@@ -348,7 +350,7 @@ namespace TLC.SSP
 				wishspeed = speedLimit;
 
 			// See if we are changing direction a bit
-			var currentspeed = Velocity.Dot( wishdir );
+			var currentspeed = RealVelocity.Dot( wishdir );
 
 			// Reduce wishspeed by the amount of veer.
 			var addspeed = wishspeed - currentspeed;
@@ -364,7 +366,7 @@ namespace TLC.SSP
 			if ( accelspeed > addspeed )
 				accelspeed = addspeed;
 
-			Velocity += wishdir * accelspeed;
+			RealVelocity += wishdir * accelspeed;
 		}
 
 		/// <summary>
@@ -373,7 +375,7 @@ namespace TLC.SSP
 		public virtual void ApplyFriction( float frictionAmount = 1.0f )
 		{
 			// Calculate speed
-			var speed = Velocity.Length;
+			var speed = RealVelocity.Length;
 			if ( speed < 0.1f ) return;
 
 			// Bleed off some speed, but if we have less than the bleed
@@ -390,7 +392,7 @@ namespace TLC.SSP
 			if ( newspeed != speed )
 			{
 				newspeed /= speed;
-				Velocity *= newspeed;
+				RealVelocity *= newspeed;
 			}
 
 			// mv->m_outWishVel -= (1.f-newspeed) * mv->m_vecVelocity;
@@ -407,14 +409,14 @@ namespace TLC.SSP
 
 			float flMul = 268.3281572999747f * 1.2f;
 
-			float startz = Velocity.z;
+			float startz = RealVelocity.z;
 
 			if ( Duck.IsActive )
 				flMul *= 0.8f;
 
-			Velocity = CalculateCorrectVelocity( Velocity.WithZ( startz + flMul * flGroundFactor ) );
+			RealVelocity = RealVelocity.WithZ( startz + flMul * flGroundFactor );
 
-			Velocity -= CalculateCorrectVelocity( new Vector3( 0, 0, Gravity * 0.5f ) * Time.Delta );
+			RealVelocity -= new Vector3( 0, 0, Gravity * 0.5f ) * Time.Delta;
 
 			AddEvent( "jump" );
 
@@ -427,11 +429,11 @@ namespace TLC.SSP
 
 			Accelerate( wishdir, wishspeed, AirControl, AirAcceleration );
 
-			Velocity += BaseVelocity;
+			RealVelocity += BaseVelocity;
 
 			TryPlayerMove();
 
-			Velocity -= BaseVelocity;
+			RealVelocity -= BaseVelocity;
 		}
 
 		public virtual void WaterMove()
@@ -443,11 +445,11 @@ namespace TLC.SSP
 
 			Accelerate( wishdir, wishspeed, 100, Acceleration );
 
-			Velocity += BaseVelocity;
+			RealVelocity += BaseVelocity;
 
 			TryPlayerMove();
 
-			Velocity -= BaseVelocity;
+			RealVelocity -= BaseVelocity;
 		}
 
 		bool IsTouchingLadder = false;
@@ -457,7 +459,7 @@ namespace TLC.SSP
 		{
 			if ( IsTouchingLadder && Input.Pressed( InputButton.Jump ) )
 			{
-				Velocity = LadderNormal * 100.0f;
+				RealVelocity = LadderNormal * 100.0f;
 				IsTouchingLadder = false;
 
 				return;
@@ -488,14 +490,15 @@ namespace TLC.SSP
 			var velocity = WishVelocity;
 			float normalDot = velocity.Dot( LadderNormal );
 			var cross = LadderNormal * normalDot;
-			Velocity = (velocity - cross) + (-normalDot * LadderNormal.Cross( Vector3.Up.Cross( LadderNormal ).Normal ));
+			RealVelocity = (velocity - cross) + (-normalDot * LadderNormal.Cross( Vector3.Up.Cross( LadderNormal ).Normal ));
 
 			TryPlayerMove();
 		}
 
 		public virtual void TryPlayerMove()
 		{
-			MoveHelper mover = new MoveHelper( Position, Velocity );
+			var neededVelocity = CalculateCorrectVelocity( RealVelocity );
+			MoveHelper mover = new MoveHelper( Position, neededVelocity );
 			mover.Trace = mover.Trace.Size( mins, maxs ).Ignore( Pawn );
 			mover.MaxStandableAngle = GroundAngle;
 
@@ -515,8 +518,8 @@ namespace TLC.SSP
 			//
 			//  Shooting up really fast.  Definitely not on ground trimed until ladder shit
 			//
-			bool bMovingUpRapidly = Velocity.z > MaxNonJumpVelocity;
-			bool bMovingUp = Velocity.z > 0;
+			bool bMovingUpRapidly = RealVelocity.z > MaxNonJumpVelocity;
+			bool bMovingUp = RealVelocity.z > 0;
 
 			bool bMoveToEndPos = false;
 
@@ -544,7 +547,7 @@ namespace TLC.SSP
 				ClearGroundEntity();
 				bMoveToEndPos = false;
 
-				if ( Velocity.z > 0 )
+				if ( RealVelocity.z > 0 )
 					SurfaceFriction = 0.25f;
 			}
 			else
